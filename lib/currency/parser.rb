@@ -27,22 +27,24 @@ module Currency
 
   class Converter
 
-    def initialize(currency, quantity)
-      @currency = currency
-      @quantity = quantity
-      @amount = @currency * @quantity
-    end
-
-    def to_s
-      "Курс валюты к рублю: #{@currency}, количество: #{@quantity}, сумма:#{@amount}"
+    def amount(currency, quantity)
+      currency * quantity
     end
     
   end
 
   class Result
-    def in
+
+    def difference(currency_first, currency_second)
+      currency_first - currency_second
     end
+
+    def in(difference, currency)
+      difference * currency
+    end
+  
   end
+
 end
 
 currency = Currency::Request.new
@@ -55,6 +57,13 @@ rubel_rate_by_fixer = currency.second_request("BYN")
 
 favorit_rate_of_dollar = currency.condition(dollar_rate_by_fixer, dollar_rate_by_cbr)
 favorit_rate_of_rubel = currency.condition(rubel_rate_by_fixer, rubel_rate_by_cbr)
-p converter_dollar = Currency::Converter.new(favorit_rate_of_dollar, 200).to_s
-p converter_rubel = Currency::Converter.new(favorit_rate_of_rubel, 1000).to_s
 
+converter = Currency::Converter.new
+p usd = converter.amount(favorit_rate_of_dollar, 200)
+p byn = converter.amount(favorit_rate_of_rubel, 1000)
+
+
+result = Currency::Result.new
+p diffe = result.difference(usd, byn)
+p result.in(diffe, usd)
+p result.in(diffe, byn)
