@@ -5,22 +5,27 @@ require 'httparty'
 
 module Currency
   class Request
-    
-    def first_request(valute_id)
-      doc = Nokogiri::HTML(open("https://www.cbr.ru/scripts/xml_daily.asp"))
-      rate_by_cbr = doc.css("[id='#{valute_id}']").children[4].text.to_f
+
+    def initialize(valute_id, rate, access_key)
+      @access_key = access_key
+      @valute_id = valute_id
+      @rate = rate
     end
 
-    def second_request(rate)
-      @access_key = "662369652784e5f729de1b470b6a6c2a" #TODO
+    def request_by_cbr
+      doc = Nokogiri::HTML(open("https://www.cbr.ru/scripts/xml_daily.asp"))
+      @rate_by_cbr = doc.css("[id='#{@valute_id}']").children[4].text.to_f
+    end
+
+    def request_by_fixer
       url = "http://data.fixer.io/api/latest?access_key=#{@access_key}"
       response = HTTParty.get(url)
       rub = response.parsed_response["rates"]["RUB"]
-      rate_by_fixer = response.parsed_response["rates"]["#{rate}"] * rub
+      @rate_by_fixer = response.parsed_response["rates"]["#{@rate}"] * rub
     end
 
-    def condition(item_1, item_2)
-      item_1 < item_2 ? item_1 : item_2
+    def condition
+      @rate_by_cbr < @rate_by_fixer ? @rate_by_cbr : @rate_by_fixer
     end
   end
 
@@ -33,37 +38,23 @@ module Currency
     
   end
 
-  class Result
-
-    def difference(currency_first, currency_second)
-      currency_first - currency_second
-    end
-
-    def in(difference, currency)
-      difference * currency
-    end
   
-  end
 
 end
 
-currency = Currency::Request.new
-dollar_rate_by_cbr = currency.first_request('R01235')
-rubel_rate_by_cbr = currency.first_request('R01090B')
-
-dollar_rate_by_fixer = currency.second_request("USD")
-rubel_rate_by_fixer = currency.second_request("BYN")
+currency = Currency::Request.new('R01235', "USD", "662369652784e5f729de1b470b6a6c2a")
+currency.request_by_cbr
+currency.request_by_fixer
+p usd = currency.condition
 
 
-favorit_rate_of_dollar = currency.condition(dollar_rate_by_fixer, dollar_rate_by_cbr)
-favorit_rate_of_rubel = currency.condition(rubel_rate_by_fixer, rubel_rate_by_cbr)
+currency = Currency::Request.new('R01090B', "BYN", "662369652784e5f729de1b470b6a6c2a")
+currency.request_by_cbr
+currency.request_by_fixer
+p byn = currency.condition
 
 converter = Currency::Converter.new
-p usd = converter.amount(favorit_rate_of_dollar, 200)
-p byn = converter.amount(favorit_rate_of_rubel, 1000)
+p usd_sum = converter.amount(usd, 200)
+p byn_sum = converter.amount(byn, 1000)
 
 
-result = Currency::Result.new
-p diffe = result.difference(usd, byn)
-p result.in(diffe, usd)
-p result.in(diffe, byn)
